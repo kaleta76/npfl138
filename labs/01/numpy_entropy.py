@@ -20,6 +20,7 @@ def main(args: argparse.Namespace) -> tuple[float, float, float]:
             # TODO: Process the line, aggregating data with built-in Python
             # data structures (not NumPy, which is not suitable for incremental
             # addition and string mapping).
+            # vytvarame zoznam sprav zo suboru data_path
             zoznam.append(line)
             #print(f"{line=}")
     # Nakoniec premeníme zoznam na NumPy pole
@@ -33,17 +34,18 @@ def main(args: argparse.Namespace) -> tuple[float, float, float]:
     # manual for/while cycles, but instead use the fact that most NumPy methods
     # operate on all elements (for example `*` is vector element-wise multiplication).
     # Compute the entropy
+
     entropy = -np.sum(p * np.log(p))
 
 
     # TODO: Create a NumPy array containing the data distribution. The
     # NumPy array should contain only data, not any mapping. Alternatively,
     # the NumPy array might be created after loading the model distribution.
-    # Začneme vytvorením prázdneho zoznamu
+
 
     model_distribution = {}
     unique_symbols = set()
-    # Potom prejdeme každý riadok v objekte model
+    # Prejdeme každý riadok v objekte model a vytvorime slovnik sprava->pravdepodobnost
     # TODO: Load model distribution, each line `string \t probability`.
     try:
         with open(args.model_path, "r") as model:
@@ -64,12 +66,16 @@ def main(args: argparse.Namespace) -> tuple[float, float, float]:
         print(f"Chyba pri načítaní súboru: {e}")
         exit(1)
 
+    #print(f"{model_distribution=}")    
+
     # TODO: Process the line, aggregating using Python data structures.
 
     # TODO: Create a NumPy array containing the model distribution.
         
     try:
     # Nacitanie predpovedanej distribúcie pravdepodobností z modelu
+    # Pre každý prvok v zozname values sa vyhľadá odpovedajúca pravdepodobnosť v slovniku (modelu)
+    # a vytvorí sa z nich NumPy pole
         q = np.array([model_distribution[value] for value in values])
     except KeyError as e:
     # Výnimka, ak niečo chýba v model_distribution
@@ -94,9 +100,6 @@ def main(args: argparse.Namespace) -> tuple[float, float, float]:
 
 
 if __name__ == "__main__":
-    #args = parser.parse_args([] if "__file__" not in globals() else None)
-    # python3 numpy_entropy.py --data_path numpy_entropy_data_1.txt --model_path numpy_entropy_model_1.txt
-    #argumenty = ["--data_path", "numpy_entropy_data_1.txt", "--model_path", "numpy_entropy_model_1.txt"]
     args = parser.parse_args(argumenty if "__file__" not in globals() else None)
     entropy, crossentropy, kl_divergence = main(args)
     print("Entropy: {:.2f} nats".format(entropy))
