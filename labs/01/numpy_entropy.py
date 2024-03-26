@@ -3,12 +3,22 @@ import argparse
 
 import numpy as np
 
+DEBUG = False
+
+
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--data_path", default="C:\\Users\\kalet\\Documents\\npfl138\\labs\\01\\numpy_entropy_data_4.txt", type=str, help="Data distribution path.")
 parser.add_argument("--model_path", default="C:\\Users\\kalet\\Documents\\npfl138\\labs\\01\\numpy_entropy_model_4.txt", type=str, help="Model distribution path.")
 parser.add_argument("--recodex", default=False, action="store_true", help="Evaluation in ReCodEx.")
 # If you add more arguments, ReCodEx will keep them with your default values.
+
+
+
+def debug_print(msg):
+    if DEBUG:
+        print(msg)
+
 
 def main(args: argparse.Namespace) -> tuple[float, float, float]:
 
@@ -29,7 +39,8 @@ def main(args: argparse.Namespace) -> tuple[float, float, float]:
     values, frequencies  = np.unique(symboly, return_counts=True)
     # Výpočet pravdepodobnosti
     p = frequencies / frequencies.sum()
-    #print(f"{relative_frequencies=}")
+    debug_print(f"{values=}")
+    debug_print(f"{p=}")
     # TODO: Compute the entropy H(data distribution). You should not use
     # manual for/while cycles, but instead use the fact that most NumPy methods
     # operate on all elements (for example `*` is vector element-wise multiplication).
@@ -66,7 +77,7 @@ def main(args: argparse.Namespace) -> tuple[float, float, float]:
         print(f"Chyba pri načítaní súboru: {e}")
         exit(1)
 
-    #print(f"{model_distribution=}")    
+    debug_print(f"{model_distribution=}")    
 
     # TODO: Process the line, aggregating using Python data structures.
 
@@ -85,7 +96,7 @@ def main(args: argparse.Namespace) -> tuple[float, float, float]:
         return entropy, crossentropy, kl_divergence
         #raise ValueError(f"Chýbajúca hodnota: {e}")
 
-
+    debug_print(f"{q=}")
     # TODO: Compute cross-entropy H(data distribution, model distribution).
     # When some data distribution elements are missing in the model distribution,
     # return `np.inf`.
