@@ -12,11 +12,11 @@ from mnist import MNIST
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
-parser.add_argument("--activation", default="none", choices=["none", "relu", "tanh", "sigmoid"], help="Activation.")
+parser.add_argument("--activation", default="relu", choices=["none", "relu", "tanh", "sigmoid"], help="Activation.")
 parser.add_argument("--batch_size", default=50, type=int, help="Batch size.")
 parser.add_argument("--epochs", default=10, type=int, help="Number of epochs.")
 parser.add_argument("--hidden_layer", default=100, type=int, help="Size of the hidden layer.")
-parser.add_argument("--hidden_layers", default=1, type=int, help="Number of layers.")
+parser.add_argument("--hidden_layers", default=3, type=int, help="Number of layers.")
 parser.add_argument("--recodex", default=False, action="store_true", help="Evaluation in ReCodEx.")
 parser.add_argument("--seed", default=42, type=int, help="Random seed.")
 parser.add_argument("--threads", default=1, type=int, help="Maximum number of threads to use.")
@@ -70,12 +70,25 @@ def main(args: argparse.Namespace) -> dict[str, float]:
     model.add(keras.Input([MNIST.H, MNIST.W, MNIST.C]))
     # TODO: Finish the model. Namely:
     # - start by adding a `keras.layers.Rescaling(1 / 255)` layer;
+
+    model.add(keras.layers.Rescaling(1 / 255))
     # - then add a `keras.layers.Flatten()` layer;
+    model.add(keras.layers.Flatten())
+
     # - add `args.hidden_layers` number of fully connected hidden layers
     #   `keras.layers.Dense()` with  `args.hidden_layer` neurons, using activation
     #   from `args.activation`, allowing "none", "relu", "tanh", "sigmoid";
     # - finally, add an output fully connected layer with  `MNIST.LABELS` units
+    # Add `args.hidden_layers` number of fully connected hidden layers
+    for _ in range(args.hidden_layers):
+        if args.activation == "none":
+            model.add(keras.layers.Dense(args.hidden_layer))
+        else:
+            model.add(keras.layers.Dense(args.hidden_layer, activation=args.activation))
+
+
     #   and `softmax` activation.
+    model.add(keras.layers.Dense(MNIST.LABELS, activation="softmax"))
 
     model.compile(
         optimizer=keras.optimizers.Adam(),

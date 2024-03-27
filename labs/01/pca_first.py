@@ -107,7 +107,9 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         
         # 1. v = cov v
         v = torch.mv(cov, v)
+        
         # 2. s = l2_norm(v)
+        # vypočítame normu (dĺžku) vektora v
         s = torch.linalg.vector_norm(v)
         # 3. v = v / s
         v = v / s

@@ -103,9 +103,10 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     #debug_print(f"{total_variance=}, {total_variance1=}")
 
     # TODO: Now run `args.iterations` of the power iteration algorithm.
-    # Start with a vector of `cov.shape[0]` ones of type `"float32"` using `keras.ops.ones`.
+    # Start with a vector of `4` ones of type `"float32"` using `keras.ops.ones`.
 
     #v = keras.ops.ones(cov.shape[0], dtype=torch.float32)
+    # vytvorenie vektora jednotiek 
     v = keras.ops.ones(cov.shape[0], dtype=torch.float32)
     #v1 = torch.ones(cov.shape[0], dtype=torch.float32)
     #debug_print(f"{torch.equal(v, v1)=}")
@@ -123,16 +124,18 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         # 1. v = cov v
         # urobime maticovo-vektorové násobenie matice kovariancie a vektora v
         #v1 = torch.mv(cov, v)
-        # Výpočet maticovo-vektorového násobenia
+        # Výpočet maticovo-vektorového násobenia kovalencnej matice cov s vektorom v
         v = keras.ops.dot(cov, v)
         #debug_print(f"{torch.equal(v1, v2)=},{v1.size()},{v2.size()}")
 
         # 2. s = l2_norm(v)
+        # vypočítame normu (dĺžku) vektora v
         s = keras.ops.norm(v)
         #s2 = torch.linalg.vector_norm(v2)
 
         #debug_print(f"{torch.equal(s1, s2)=}")        
         # 3. v = v / s
+        # vydelime vektor jeho normou
         v = v / s
 
     # The `v` is now approximately the eigenvector of the largest eigenvalue, `s`.
