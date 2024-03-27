@@ -12,11 +12,11 @@ from mnist import MNIST
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
-parser.add_argument("--activation", default="relu", choices=["none", "relu", "tanh", "sigmoid"], help="Activation.")
+parser.add_argument("--activation", default="sigmoid", choices=["none", "relu", "tanh", "sigmoid"], help="Activation.")
 parser.add_argument("--batch_size", default=50, type=int, help="Batch size.")
 parser.add_argument("--epochs", default=10, type=int, help="Number of epochs.")
 parser.add_argument("--hidden_layer", default=100, type=int, help="Size of the hidden layer.")
-parser.add_argument("--hidden_layers", default=3, type=int, help="Number of layers.")
+parser.add_argument("--hidden_layers", default=10, type=int, help="Number of layers.")
 parser.add_argument("--recodex", default=False, action="store_true", help="Evaluation in ReCodEx.")
 parser.add_argument("--seed", default=42, type=int, help="Random seed.")
 parser.add_argument("--threads", default=1, type=int, help="Maximum number of threads to use.")
@@ -95,6 +95,8 @@ def main(args: argparse.Namespace) -> dict[str, float]:
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=[keras.metrics.SparseCategoricalAccuracy("accuracy")],
     )
+
+    model.summary()
 
     logs = model.fit(
         mnist.train.data["images"], mnist.train.data["labels"],
