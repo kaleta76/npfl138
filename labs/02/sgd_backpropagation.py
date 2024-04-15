@@ -47,8 +47,6 @@ class Model(keras.Model):
         )
         self._b2 = keras.Variable(keras.ops.zeros([MNIST.LABELS]), trainable=True)
 
-        #print(f"{self._W1=},{self._b1=},{self._W2=},{self._b2=}")
-
     def predict(self, inputs: torch.Tensor) -> torch.Tensor:
         # TODO: Define the computation of the network. Notably:
         # - start by casting the input byte image to `float32` with `keras.ops.cast`
