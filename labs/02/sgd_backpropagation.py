@@ -14,9 +14,9 @@ from mnist import MNIST
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
-parser.add_argument("--batch_size", default=50, type=int, help="Batch size.")
+parser.add_argument("--batch_size", default=64, type=int, help="Batch size.")
 parser.add_argument("--epochs", default=10, type=int, help="Number of epochs.")
-parser.add_argument("--hidden_layer", default=100, type=int, help="Size of the hidden layer.")
+parser.add_argument("--hidden_layer", default=20, type=int, help="Size of the hidden layer.")
 parser.add_argument("--learning_rate", default=0.1, type=float, help="Learning rate.")
 parser.add_argument("--recodex", default=False, action="store_true", help="Evaluation in ReCodEx.")
 parser.add_argument("--seed", default=42, type=int, help="Random seed.")
@@ -34,12 +34,20 @@ class Model(keras.Model):
             trainable=True,
         )
         self._b1 = keras.Variable(keras.ops.zeros([args.hidden_layer]), trainable=True)
+        
 
         # TODO: Create variables:
         # - _W2, which is a trainable variable of size `[args.hidden_layer, MNIST.LABELS]`,
         #   initialized to `keras.random.normal` value `with stddev=0.1` and `seed=args.seed`,
         # - _b2, which is a trainable variable of size `[MNIST.LABELS]` initialized to zeros
-        ...
+        # Create variables:
+        self._W2 = keras.Variable(
+            keras.random.normal([args.hidden_layer, MNIST.LABELS], stddev=0.1, seed=args.seed),
+            trainable=True,
+        )
+        self._b2 = keras.Variable(keras.ops.zeros([MNIST.LABELS]), trainable=True)
+
+        #print(f"{self._W1=},{self._b1=},{self._W2=},{self._b2=}")
 
     def predict(self, inputs: torch.Tensor) -> torch.Tensor:
         # TODO: Define the computation of the network. Notably:
@@ -52,7 +60,12 @@ class Model(keras.Model):
         # - apply `keras.ops.tanh`
         # - multiply the result by `self._W2` and then add `self._b2`
         # - finally apply `keras.ops.softmax` and return the result
-        return ...
+        inputs = keras.ops.cast(inputs, dtype='float32') / 255
+        inputs = keras.ops.reshape(inputs, [-1, MNIST.W * MNIST.H * MNIST.C])
+        inputs = keras.ops.matmul(inputs, self._W1) + self._b1
+        inputs = keras.ops.tanh(inputs)
+        inputs = keras.ops.matmul(inputs, self._W2) + self._b2
+        return keras.ops.softmax(inputs)
 
     def train_epoch(self, dataset: MNIST.Dataset) -> None:
         for batch in dataset.batches(self._args.batch_size):
@@ -63,7 +76,7 @@ class Model(keras.Model):
             # might be smaller.
 
             # TODO: Compute the predicted probabilities of the batch images using `self.predict`
-            probabilities = ...
+            probabilities = self.predict(batch["images"])
 
             # TODO: Manually compute the loss:
             # - For every batch example, the loss is the categorical crossentropy of the
@@ -71,7 +84,8 @@ class Model(keras.Model):
             #   - either use `keras.ops.one_hot` to obtain one-hot encoded gold labels,
             #   - or suitably use `keras.ops.take_along_axis` to "index" the predicted probabilities.
             # - Finally, compute the average across the batch examples.
-            loss = ...
+            #loss = keras.ops.reduce_mean(keras.ops.sparse_categorical_crossentropy(batch["labels"], probabilities))
+            loss = torch.mean(keras.ops.sparse_categorical_crossentropy(batch["labels"], probabilities))
 
             # We create a list of all variables. Note that a `keras.Model/Layer` automatically
             # tracks owned variables, so we could also use `self.trainable_variables`
@@ -82,7 +96,9 @@ class Model(keras.Model):
             # backpropagation algorithm by
             # - first resetting the gradients of all variables to zero with `self.zero_grad()`,
             # - then calling `loss.backward()`.
-            ...
+            with torch.autograd.detect_anomaly():
+                self.zero_grad() # reset gradientov
+                loss.backward()
 
             gradients = [variable.value.grad for variable in variables]
             with torch.no_grad():
@@ -91,7 +107,7 @@ class Model(keras.Model):
                     # for the variable and computed gradient. You can modify the
                     # variable value with `variable.assign` or in this case the more
                     # efficient `variable.assign_sub`.
-                    ...
+                    variable.assign_sub(self._args.learning_rate * gradient)
 
     def evaluate(self, dataset: MNIST.Dataset) -> float:
         # Compute the accuracy of the model prediction
@@ -99,11 +115,11 @@ class Model(keras.Model):
         for batch in dataset.batches(self._args.batch_size):
             # TODO: Compute the probabilities of the batch images using `self.predict`
             # and convert them to Numpy with `keras.ops.convert_to_numpy`.
-            probabilities = ...
+            probabilities = keras.ops.convert_to_numpy(self.predict(batch["images"]))
 
             # TODO: Evaluate how many batch examples were predicted
             # correctly and increase `correct` variable accordingly.
-            correct += ...
+            correct += np.sum(np.argmax(probabilities, axis=1) == batch["labels"])
 
         return correct / dataset.size
 
@@ -133,14 +149,15 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
 
     for epoch in range(args.epochs):
         # TODO: Run the `train_epoch` with `mnist.train` dataset
-
+        model.train_epoch(mnist.train)
+      
         # TODO: Evaluate the dev data using `evaluate` on `mnist.dev` dataset
-        accuracy = ...
+        accuracy = model.evaluate(mnist.dev)
         print("Dev accuracy after epoch {} is {:.2f}".format(epoch + 1, 100 * accuracy), flush=True)
         writer.add_scalar("dev/accuracy", 100 * accuracy, epoch + 1)
 
     # TODO: Evaluate the test data using `evaluate` on `mnist.test` dataset
-    test_accuracy = ...
+    test_accuracy = model.evaluate(mnist.test)
     print("Test accuracy after epoch {} is {:.2f}".format(epoch + 1, 100 * test_accuracy), flush=True)
     writer.add_scalar("test/accuracy", 100 * test_accuracy, epoch + 1)
 
