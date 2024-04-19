@@ -14,13 +14,13 @@ from mnist import MNIST
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--batch_size", default=50, type=int, help="Batch size.")
-parser.add_argument("--decay", default=None, choices=["linear", "exponential", "cosine"], help="Decay type")
+parser.add_argument("--decay", default="cosine", choices=["linear", "exponential", "cosine"], help="Decay type")
 parser.add_argument("--epochs", default=10, type=int, help="Number of epochs.")
 parser.add_argument("--hidden_layer", default=128, type=int, help="Size of the hidden layer.")
 parser.add_argument("--learning_rate", default=0.01, type=float, help="Initial learning rate.")
-parser.add_argument("--learning_rate_final", default=None, type=float, help="Final learning rate.")
+parser.add_argument("--learning_rate_final", default=0.0001, type=float, help="Final learning rate.")
 parser.add_argument("--momentum", default=None, type=float, help="Nesterov momentum to use in SGD.")
-parser.add_argument("--optimizer", default="SGD", choices=["SGD", "Adam"], help="Optimizer to use.")
+parser.add_argument("--optimizer", default="Adam", choices=["SGD", "Adam"], help="Optimizer to use.")
 parser.add_argument("--recodex", default=False, action="store_true", help="Evaluation in ReCodEx.")
 parser.add_argument("--seed", default=42, type=int, help="Random seed.")
 parser.add_argument("--threads", default=1, type=int, help="Maximum number of threads to use.")
@@ -106,12 +106,53 @@ def main(args: argparse.Namespace) -> dict[str, float]:
     #   rate by printing `model.optimizer.learning_rate` (the original schedule is available
     #   in `model.optimizer._learning_rate` if needed), so after training, the learning rate
     #   should be `args.learning_rate_final`.
+    def create_optimizer(args: argparse.Namespace, decay_steps: int) -> keras.optimizers.Optimizer:
+        match args.optimizer:
+            case "SGD":
+                learning_rate_schedule = None
+                match args.decay:
+                    case "linear":
+                        learning_rate_schedule = keras.optimizers.schedules.PolynomialDecay(
+                            initial_learning_rate=args.learning_rate,
+                            decay_steps=decay_steps,
+                            end_learning_rate=args.learning_rate_final,
+                        )
+                    case "exponential":
+                        learning_rate_schedule = keras.optimizers.schedules.ExponentialDecay(
+                            initial_learning_rate=args.learning_rate,
+                            decay_steps=decay_steps,
+                            decay_rate=(args.learning_rate_final / args.learning_rate) ** (1 / decay_steps),
+                            staircase=False,
+                        )
+                    case "cosine":
+                        learning_rate_schedule = keras.optimizers.schedules.CosineDecay(
+                            initial_learning_rate=args.learning_rate,
+                            decay_steps=decay_steps,
+                            alpha=args.learning_rate_final,
+                        )
+                    case None:
+                        learning_rate_schedule = args.learning_rate
+
+                return keras.optimizers.SGD(
+                    learning_rate=learning_rate_schedule,
+                    momentum=args.momentum if args.momentum is not None else 0.0,
+                    nesterov=args.momentum is not None,
+                )
+            case "Adam":
+                return keras.optimizers.Adam(learning_rate=args.learning_rate)
+            
+    # Calculate decay_steps
+    decay_steps = mnist.train.size // args.batch_size * args.epochs
 
     model.compile(
-        optimizer=...,
+        create_optimizer(args, decay_steps),
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=[keras.metrics.SparseCategoricalAccuracy("accuracy")],
     )
+    
+    print(f"{model.optimizer.learning_rate=}")
+    print(f"{type(model.optimizer.learning_rate).__name__=}")
+
 
     tb_callback = TorchTensorBoardCallback(args.logdir)
 
